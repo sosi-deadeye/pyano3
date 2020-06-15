@@ -20,25 +20,45 @@
 
 import configparser
 import pkgutil
+from pathlib import Path
 
-
-class Config:
-    pass
-
-
-conf = Config()
 
 PYANO = "Pyano"
+DEFAULT_CONFIG = {
+    'mixmaster': '/usr/bin/mixmaster',
+    'remailer_addr': '',
+    'remailer_mx': 'localhost',
+    'mlist2': '',
+    'allow_from': '',
+    'hist_file': '',
+    'hist_window': 15,
+    'hist_max_uses': 5,
+    'banned_file': '',
+    'chain_max_length': 5,
+    'max_copies': 5,
+    'mail_html': '',
+    'news_html': '',
+    'block_html': '',
+    'mail_form_html': '',
+    'news_form_html': '',
+    'mail2news': 'mail2news@dizum.com, mail2news@mixmin.net, mail2news@m2n.mixmin.net, mail2news@reece.net.au, mail2news@tioat.net, Post',
+    'bad_mail2news': ''
+}
 
-NONE = ""
-RANDOM = "RANDOM"
-POST = "Post"
+
+# todo: improvement?
+class Config:
+    pass
 
 
 class ConfigError(Exception):
     pass
 
 
+conf = Config()
+
+
+# todo: get rid of this function
 def _get_html(config, conf_name, pkg_name):
     param = config.get(PYANO, conf_name)
     if not param:
@@ -50,58 +70,35 @@ def _get_html(config, conf_name, pkg_name):
             raise ConfigError("Error reading " + param + ".")
 
 
-def parse_config(config_file=None):
-    config = configparser.SafeConfigParser()
+def parse_config(config_file: Path):
+    config = configparser.ConfigParser(defaults=DEFAULT_CONFIG)
     config.add_section(PYANO)
-    # fill defaults
-    config.set(PYANO, "mixmaster", "/usr/bin/mixmaster")
-    config.set(PYANO, "remailer_addr", "")
-    config.set(PYANO, "remailer_mx", "localhost")
-    config.set(PYANO, "mlist2", "")
-    config.set(PYANO, "allow_from", "")
-    config.set(PYANO, "hist_file", "")
-    config.set(PYANO, "hist_window", "15")
-    config.set(PYANO, "hist_max_uses", "5")
-    config.set(PYANO, "banned_file", "")
-    config.set(PYANO, "chain_max_length", "5")
-    config.set(PYANO, "max_copies", "5")
-    config.set(PYANO, "mail_html", "")
-    config.set(PYANO, "news_html", "")
-    config.set(PYANO, "block_html", "")
-    config.set(PYANO, "mail_form_html", "")
-    config.set(PYANO, "news_form_html", "")
-    config.set(
-        PYANO,
-        "mail2news",
-        "mail2news@dizum.com, mail2news@mixmin.net, mail2news@m2n.mixmin.net, mail2news@reece.net.au, mail2news@tioat.net, "
-        + POST,
-    )
-    config.set(PYANO, "bad_mail2news", "")
+    if config_file.exists():
+        with config_file.open() as fd:
+            config.read(fd)
+    return config
 
-    # read config file
-    try:
-        if config_file != None:
-            config.read(config_file)
-    except:  # Something is wrong with the configuration file
-        raise ConfigError("Error parsing configuration file.")
 
-    conf.mixmaster = config.get(PYANO, "mixmaster")
-    conf.remailer_addr = config.get(PYANO, "remailer_addr")
-    conf.remailer_mx = config.get(PYANO, "remailer_mx")
-    conf.mlist2 = config.get(PYANO, "mlist2")
-    conf.allow_from = config.get(PYANO, "allow_from")
-    conf.hist_file = config.get(PYANO, "hist_file")
-    conf.hist_window = config.getint(PYANO, "hist_window")
-    conf.hist_max_uses = config.getint(PYANO, "hist_max_uses")
-    conf.banned_file = config.get(PYANO, "banned_file")
-    conf.chain_max_length = config.getint(PYANO, "chain_max_length")
-    conf.max_copies = config.getint(PYANO, "max_copies")
-    conf.mail2news = [
-        gateway.strip() for gateway in config.get(PYANO, "mail2news").split(",")
-    ]
-    conf.bad_mail2news = config.get(PYANO, "bad_mail2news")
-    conf.mail_html = _get_html(config, "mail_html", "html/mail.html")
-    conf.news_html = _get_html(config, "news_html", "html/news.html")
-    conf.block_html = _get_html(config, "block_html", "html/block.html")
-    conf.mail_form_html = _get_html(config, "mail_form_html", "html/mail_form.html")
-    conf.news_form_html = _get_html(config, "news_form_html", "html/news_form.html")
+# todo: remove ugliness!
+config = parse_config(Path("config.text"))
+conf.mixmaster = config.get(PYANO, "mixmaster")
+conf.remailer_addr = config.get(PYANO, "remailer_addr")
+conf.remailer_mx = config.get(PYANO, "remailer_mx")
+conf.mlist2 = config.get(PYANO, "mlist2")
+conf.allow_from = config.get(PYANO, "allow_from")
+conf.hist_file = config.get(PYANO, "hist_file")
+conf.hist_window = config.getint(PYANO, "hist_window")
+conf.hist_max_uses = config.getint(PYANO, "hist_max_uses")
+conf.banned_file = config.get(PYANO, "banned_file")
+conf.chain_max_length = config.getint(PYANO, "chain_max_length")
+conf.max_copies = config.getint(PYANO, "max_copies")
+conf.mail2news = [
+    gateway.strip() for gateway in config.get(PYANO, "mail2news").split(",")
+]
+conf.bad_mail2news = config.get(PYANO, "bad_mail2news")
+# todo: move html code to templates directory
+conf.mail_html = _get_html(config, "mail_html", "html/mail.html")
+conf.news_html = _get_html(config, "news_html", "html/news.html")
+conf.block_html = _get_html(config, "block_html", "html/block.html")
+conf.mail_form_html = _get_html(config, "mail_form_html", "html/mail_form.html")
+conf.news_form_html = _get_html(config, "news_form_html", "html/news_form.html")
