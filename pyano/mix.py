@@ -20,46 +20,63 @@
 
 
 import subprocess
-from config import conf, POST
+
+from .config import conf, POST
+
 
 class MixError(Exception):
     pass
 
-def send_mail(to,orig,subj,chain,n_copies,msg):
-    args = [conf.mixmaster,'--mail','--to='+to,'--subject='+subj,'--copies='+str(n_copies)]
-    
+
+def send_mail(to, orig, subj, chain, n_copies, msg):
+    args = [
+        conf.mixmaster,
+        "--mail",
+        "--to=" + to,
+        "--subject=" + subj,
+        "--copies=" + str(n_copies),
+    ]
+
     if orig:
-        args.append('--header=From: '+orig)
+        args.append("--header=From: " + orig)
     if chain:
-        args.append('--chain='+','.join(chain))
-    send_mix(args,msg)
+        args.append("--chain=" + ",".join(chain))
+    send_mix(args, msg)
 
 
-def send_news(newsgroups, orig, subj, refs, mail2news, hashcash, no_archive, chain, n_copies, msg):
-    args = [conf.mixmaster,'--subject='+subj,'--copies='+str(n_copies)]
+def send_news(
+    newsgroups, orig, subj, refs, mail2news, hashcash, no_archive, chain, n_copies, msg
+):
+    args = [conf.mixmaster, "--subject=" + subj, "--copies=" + str(n_copies)]
     if orig:
-        args.append('--header=From: '+orig)
+        args.append("--header=From: " + orig)
     if no_archive:
-        args.append('--header=X-No-Archive: yes')
-    if mail2news != POST: # user supplied mail2news gateways
-        args.extend(['--mail','--to='+mail2news])
-        args.append('--header=Newsgroups: '+newsgroups)
-    else: # no supplied mail2news gateways, use mixmaster's internal mail2news parameters
-        args.extend(['--post','--post-to='+newsgroups])
+        args.append("--header=X-No-Archive: yes")
+    if mail2news != POST:  # user supplied mail2news gateways
+        args.extend(["--mail", "--to=" + mail2news])
+        args.append("--header=Newsgroups: " + newsgroups)
+    else:  # no supplied mail2news gateways, use mixmaster's internal mail2news parameters
+        args.extend(["--post", "--post-to=" + newsgroups])
     if refs:
-        args.append('--header=References: '+refs)
+        args.append("--header=References: " + refs)
     if hashcash:
-        args.append('--header=X-HashCash: '+hashcash)
+        args.append("--header=X-HashCash: " + hashcash)
     if chain:
-        args.append('--chain='+','.join(chain))
-    send_mix(args,msg)
-    
+        args.append("--chain=" + ",".join(chain))
+    send_mix(args, msg)
 
-def send_mix(args,msg):
+
+def send_mix(args, msg):
     try:
-        mix = subprocess.Popen(args,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-        out,err = mix.communicate(msg)
-        if err.find('Error') >= 0:
-            raise MixError('Mixmaster process returned the following error: '+str(err)+'. Sending failed.')
-    except OSError: # usally means that mixmaster could not be executed
-        raise MixError('Could not find mixmaster binary.')
+        mix = subprocess.Popen(
+            args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf8"
+        )
+        out, err = mix.communicate(msg)
+        if err.find("Error") >= 0:
+            raise MixError(
+                "Mixmaster process returned the following error: "
+                + str(err)
+                + ". Sending failed."
+            )
+    except OSError:  # usally means that mixmaster could not be executed
+        raise MixError("Could not find mixmaster binary.")

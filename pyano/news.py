@@ -18,16 +18,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.       #
 ###############################################################################
 
-from validate import *
-from config import conf, POST
-from interface import MixInterface
-from stats import bad_mail2news, format_bad_mail2news, mail2news_pref_sort
-from mix import send_news
+from .interface import MixInterface
+from .mix import send_news
+from .stats import format_bad_mail2news, mail2news_pref_sort
+from .validate import *
 
 
 class NewsInterface(MixInterface):
 
-    form_html = '''
+    form_html = """
     <form action="PYANO_URI" method="post" >
     <table id="mixtable">
       <tr id="newsgroup">
@@ -75,80 +74,123 @@ class NewsInterface(MixInterface):
       </tr>
     </table>
     </form>
-'''
+"""
 
     def validate(self):
-        groups = str(self.fs['newsgroups']).replace(' ','') # filter out whitespaces
+        groups = str(self.fs["newsgroups"]).replace(" ", "")  # filter out whitespaces
         val_newsgroups(groups)
-        orig = str(self.fs['from'])
+        orig = str(self.fs["from"])
         if orig:
             val_email(orig)
-        refs = str(self.fs['references'])
+        refs = str(self.fs["references"])
         if refs:
             val_references(refs)
-        mail2news_custom = self.fs['mail2news_custom']
+        mail2news_custom = self.fs["mail2news_custom"]
         if mail2news_custom:
             val_mail2news(mail2news_custom)
             mail2news = mail2news_custom
         else:
-            mail2news = str(self.fs['mail2news'])
+            mail2news = str(self.fs["mail2news"])
             if mail2news != POST:
                 val_mail2news(mail2news)
-        hashcash = str(self.fs['hashcash']).strip()
+        hashcash = str(self.fs["hashcash"]).strip()
         if hashcash:
             val_hashcash(hashcash)
         try:
-            checked = str(self.fs['archive'])
+            checked = str(self.fs["archive"])
             no_archive = True
         except KeyError:
             no_archive = False
-        subj = str(self.fs['subject'])
+        subj = str(self.fs["subject"])
         if not subj:
-            raise InputError('Subject required.')
-        chain = parse_chain(self.fs,m2n=mail2news)
-        n_copies = int(self.fs['copies'])
+            raise InputError("Subject required.")
+        chain = parse_chain(self.fs, m2n=mail2news)
+        n_copies = int(self.fs["copies"])
         val_n_copies(n_copies)
-        msg = str(self.fs['message'])
+        msg = str(self.fs["message"])
         if not msg:
-            raise InputError('Refusing to send empty message.')
-        return groups, orig, subj, refs, mail2news, hashcash, no_archive, chain, n_copies, msg
-
+            raise InputError("Refusing to send empty message.")
+        return (
+            groups,
+            orig,
+            subj,
+            refs,
+            mail2news,
+            hashcash,
+            no_archive,
+            chain,
+            n_copies,
+            msg,
+        )
 
     def html(self):
         return conf.news_html
 
     def form(self):
-        mail2news =  '\n'
-        mail2news += '        <td>\n'
+        mail2news = "\n"
+        mail2news += "        <td>\n"
         mail2news += '          <select name="mail2news" >\n'
         if bad_mail2news:
             gateways = mail2news_pref_sort()
             for gateway in gateways:
-                mail2news += '            <option value="'+gateway+'">'+format_bad_mail2news(gateway).replace(' ',"&nbsp;")+'</option>\n'
+                mail2news += (
+                    '            <option value="'
+                    + gateway
+                    + '">'
+                    + format_bad_mail2news(gateway).replace(" ", "&nbsp;")
+                    + "</option>\n"
+                )
         else:
             for gateway in conf.mail2news:
-                mail2news += '            <option value="'+gateway+'">'+gateway+'</option>\n'
-        mail2news += '          </select><br/>\n'
+                mail2news += (
+                    '            <option value="'
+                    + gateway
+                    + '">'
+                    + gateway
+                    + "</option>\n"
+                )
+        mail2news += "          </select><br/>\n"
         mail2news += '          Or custom: <input name="mail2news_custom" value="" />\n'
-        mail2news += '        </td>\n'
-        out = NewsInterface.form_html.replace('PYANO_MAIL2NEWS',mail2news)
-        return conf.news_form_html.replace('<!--FORM-->',out)
+        mail2news += "        </td>\n"
+        out = NewsInterface.form_html.replace("PYANO_MAIL2NEWS", mail2news)
+        return conf.news_form_html.replace("<!--FORM-->", out)
 
-    
     def process(self):
-        newsgroups, orig, subj, refs, mail2news, hashcash, no_archive, chain, n_copies, msg = self.validate()
-        send_news(newsgroups, orig, subj, refs, mail2news, hashcash, no_archive, chain, n_copies, msg)
-        msg = 'Successfully sent message to '+newsgroups+' using '
+        (
+            newsgroups,
+            orig,
+            subj,
+            refs,
+            mail2news,
+            hashcash,
+            no_archive,
+            chain,
+            n_copies,
+            msg,
+        ) = self.validate()
+        send_news(
+            newsgroups,
+            orig,
+            subj,
+            refs,
+            mail2news,
+            hashcash,
+            no_archive,
+            chain,
+            n_copies,
+            msg,
+        )
+        msg = "Successfully sent message to " + newsgroups + " using "
         if chain:
-            msg += 'remailer chain '+','.join(chain)
+            msg += "remailer chain " + ",".join(chain)
         else:
-            msg += 'a random remailer chain'
+            msg += "a random remailer chain"
         if mail2news != POST:
-            msg += ' with mail2news gateway '+mail2news+'.'
+            msg += " with mail2news gateway " + mail2news + "."
         else:
-            msg += '.'
+            msg += "."
         return msg
 
-    
+
 def handler(req):
     return NewsInterface()(req)

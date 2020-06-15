@@ -18,15 +18,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.       #
 ###############################################################################
 
-from validate import *
-from config import conf
-from interface import Interface
+from .validate import *
+from .config import conf
+from .interface import Interface
 import smtplib
 
 
 class BlockInterface(Interface):
-    
-    form_html = '''
+
+    form_html = """
     <p>Entering an email address in the box below will ensure that no further emails will be sent to it from this remailer.</p>
     <div>
       <form action="PYANO_URI" method="post" >
@@ -36,45 +36,47 @@ class BlockInterface(Interface):
         </p>
       </form>
     </div>
-'''
-
+"""
 
     def validate(self):
-        email = str(self.fs['email'])
+        email = str(self.fs["email"])
         val_email(email)
         return email
 
-    def main(self,req):
-        if len(self.fs) == 0: # before submission
+    def main(self, req):
+        if len(self.fs) == 0:  # before submission
             if conf.remailer_addr:
-                content = self.form_html.replace('PYANO_URI',str(req.uri))
+                content = self.form_html.replace("PYANO_URI", str(req.uri))
             else:
-                content = '<p>remailer_addr not configured</p>'
+                content = "<p>remailer_addr not configured</p>"
             html = self.set_html_content(conf.block_html, content)
             req.write(html)
-        else: # process submission
+        else:  # process submission
             msg = self.process()
-            req.write(self.html_success(msg,print_back=False))
+            req.write(self.html_success(msg, print_back=False))
 
     def html(self):
         return conf.block_html
-                
+
     def process(self):
-        email = self.validate() # check user input
-        self.send_block_email(email) # try sending blocking email
-        msg = 'Successfully sent request to block all emails to '+email+'.'
-        msg += ' You will receive a confirmation email shortly.'
+        email = self.validate()  # check user input
+        self.send_block_email(email)  # try sending blocking email
+        msg = (
+            f"Successfully sent request to block all emails to {email}. "
+            "You will receive a confirmation email shortly."
+        )
         return msg
 
-    def send_block_email(self,email):
+    @staticmethod
+    def send_block_email(email):
         server = smtplib.SMTP(conf.remailer_mx)
-        msg = ('From: %s\r\nTo: %s\r\n\r\n'
-               % (email, conf.remailer_addr))
-        msg += ('DESTINATION-BLOCK %s\r\n' % email )
+        msg = (
+            f"From: {email}\r\nTo: {conf.remailer_addr}\r\n\r\n"
+            f"DESTINATION-BLOCK {email}\r\n"
+        )
         server.sendmail(email, conf.remailer_addr, msg)
         server.quit()
 
 
 def handler(req):
     return BlockInterface()(req)
-

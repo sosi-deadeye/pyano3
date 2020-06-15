@@ -18,15 +18,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.       #
 ###############################################################################
 
-from validate import *
-from config import conf
-from interface import MixInterface
-from mix import send_mail
+from .validate import *
+from .config import conf
+from .interface import MixInterface
+from .mix import send_mail
 
 
 class MailInterface(MixInterface):
-    
-    form_html = '''
+
+    form_html = """
     <form action="PYANO_URI" method="post" >
     <table id="mixtable">
       <tr id="to">
@@ -57,42 +57,35 @@ class MailInterface(MixInterface):
       </tr>
     </table>
     </form>
-'''
+"""
 
     def validate(self):
-        to = str(self.fs['to'])
+        to = str(self.fs["to"])
         val_email(to)
-        orig = str(self.fs['from'])
+        orig = str(self.fs["from"])
         if orig:
             val_email(orig)
-        subj = str(self.fs['subject'])
+        subj = str(self.fs["subject"])
         chain = parse_chain(self.fs)
-        n_copies = int(self.fs['copies'])
+        n_copies = int(self.fs["copies"])
         val_n_copies(n_copies)
-        msg = str(self.fs['message'])
+        msg = str(self.fs["message"])
         if not msg:
-            raise InputError('Refusing to send empty message.')
+            raise InputError("Refusing to send empty message.")
         return to, orig, subj, chain, n_copies, msg
-
 
     def html(self):
         return conf.mail_html
 
     def form(self):
-        return conf.mail_form_html.replace('<!--FORM-->',MailInterface.form_html)
-                
+        return conf.mail_form_html.replace("<!--FORM-->", MailInterface.form_html)
+
     def process(self):
-        to, orig, subj, chain, n_copies, msg = self.validate() # check user input
-        send_mail(to,orig,subj,chain,n_copies,msg) # try sending to mixmaster
-        msg = 'Successfully sent message to '+to+' using '
+        to, orig, subj, chain, n_copies, msg = self.validate()  # check user input
+        send_mail(to, orig, subj, chain, n_copies, msg)  # try sending to mixmaster
+        msg = f"Successfully sent message to {to} using "
         if chain:
-            msg += 'remailer chain '+','.join(chain)+'.'
+            msg += f"remailer chain {','.join(chain)}."
         else:
-            msg += 'a random remailer chain.'
+            msg += "a random remailer chain."
         return msg
-
-    
-
-def handler(req):
-    return MailInterface()(req)
-
